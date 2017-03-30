@@ -32,7 +32,6 @@ def pony-lint -allow-override -docstring 'Parse the current buffer with a linter
             echo "echo -debug 'found package = ${package}'" | kak -p "$kak_session"
         fi
 
-        #eval "$kak_opt_pony_lintcmd ${package}" 2>&1 > /dev/null | sort -t: -k2,2 -n | uniq | grep "$kak_buffile:[0-9]\+:[0-9]\+:" > "$dir"/stderr
         eval "$kak_opt_pony_lintcmd ${package}" 2>&1 > /dev/null | tee "$dir"/stderr
         printf '%s\n' "eval -client $kak_client echo 'pony linting done'" | kak -p "$kak_session"
 
@@ -51,7 +50,7 @@ def pony-lint -allow-override -docstring 'Parse the current buffer with a linter
             /:[0-9]+:[0-9]+:/ {
                 errors = errors $2 "," $3 "," substr($4,2) ":"
                 # fix case where $5 is not the last field because of extra :s in the message
-                for (i=5; i<=NF; i++) errors = errors $i "\\n hop:"
+                for (i=5; i<=NF; i++) errors = errors $i ":"
                 errors = substr(errors, 1, length(errors)-1) "\n"
             }
             END {
