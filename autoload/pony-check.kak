@@ -32,7 +32,8 @@ def pony-lint -allow-override -docstring 'Parse the current buffer with a linter
             echo "echo -debug 'found package = ${package}'" | kak -p "$kak_session"
         fi
 
-        eval "$kak_opt_pony_lintcmd ${package}" 2>&1 > /dev/null | sort -t: -k2,2 -n | uniq | grep "$kak_buffile:[0-9]\+:[0-9]\+:" > "$dir"/stderr
+        #eval "$kak_opt_pony_lintcmd ${package}" 2>&1 > /dev/null | sort -t: -k2,2 -n | uniq | grep "$kak_buffile:[0-9]\+:[0-9]\+:" > "$dir"/stderr
+        eval "$kak_opt_pony_lintcmd ${package}" 2>&1 > /dev/null | tee "$dir"/stderr
         printf '%s\n' "eval -client $kak_client echo 'pony linting done'" | kak -p "$kak_session"
 
         # Flags for the gutter:
@@ -40,7 +41,7 @@ def pony-lint -allow-override -docstring 'Parse the current buffer with a linter
         # Contextual error messages:
         #   l1,c1,err1
         #   ln,cn,err2
-        awk -F: -v file="$kak_buffile" -v stamp="$kak_timestamp" '
+        grep "$kak_buffile:[0-9]\+:[0-9]\+:" "$dir"/stderr | awk -F: -v file="$kak_buffile" -v stamp="$kak_timestamp" '
             /^\S+:[0-9]+:[0-9]+:/ {
                 flags = flags $2 "|{red}█:"
             }
@@ -50,7 +51,7 @@ def pony-lint -allow-override -docstring 'Parse the current buffer with a linter
             /:[0-9]+:[0-9]+:/ {
                 errors = errors $2 "," $3 "," substr($4,2) ":"
                 # fix case where $5 is not the last field because of extra :s in the message
-                for (i=5; i<=NF; i++) errors = errors $i ":"
+                for (i=5; i<=NF; i++) errors = errors $i "\\n hop:"
                 errors = substr(errors, 1, length(errors)-1) "\n"
             }
             END {
@@ -59,11 +60,11 @@ def pony-lint -allow-override -docstring 'Parse the current buffer with a linter
                 gsub("~", "\\~", errors)
                 print "set \"buffer=" file "\" lint_errors %~" errors "~"
             }
-        ' "$dir"/stderr | kak -p "$kak_session"
+        ' | kak -p "$kak_session"
 
         #cat "$dir"/stderr > "$dir"/fifo
         eval "$kak_opt_pony_lintcmd ${package}" 2>&1 > /dev/null | sort -t: -k2,2 -n | uniq | grep "$kak_buffile:[0-9]\+:[0-9]\+:" > /tmp/kak_log
-        cut -d: -f2- "$dir"/stderr | sed "s@^@$kak_bufname:@" > "$dir"/fifo
+        cat "$dir"/stderr | sed "s@^\S*$kak_buffile:@$kak_bufname:@" > "$dir"/fifo
 
         } >/dev/null 2>&1 </dev/null &
     }
