@@ -2,7 +2,7 @@
 hook global WinCreate .* %{
     addhl number_lines
     addhl show_matching
-    volatile-highlighters-enable
+    # volatile-highlighters-enable
 }
 
 # colorscheme
@@ -16,11 +16,22 @@ map global user y '<a-|>xsel -i<ret>;' -docstring "Copy selection to X clipboard
 map global normal <backspace> 'i<backspace>'
 map global insert <backspace> '<a-;>:insert-bs<ret>'
 map global user g ":grep-selection<ret>"-docstring "Grep the selection or the word under the cursor"
-map global user 8 '<a-i>w*n' -docstring "Search current word in buffer"
+map global user f '<a-i>w*n' -docstring "Search current word in buffer"
 map global user e ":edit-from-file<ret>" -docstring "Edit a file, searching from buffer directory"
-map global user n ":new-from-file<ret>" -docstring %{Open a file in a new window, starting from buffer dir}
+map global user n ":x11-new buffer-menu<ret>" -docstring %{Open a file in a new window, starting from buffer dir}
 map global user E ":x11-fzf-edit<ret>"
 map global user N ":x11-fzf-open-new<ret>"
+map global user k ":buffer-menu<ret>" -docstring %{Buffers menu}
+map global user 1 ":to-buffer<space>1<ret>"
+map global user 2 ":to-buffer<space>2<ret>"
+map global user 3 ":to-buffer<space>3<ret>"
+map global user 4 ":to-buffer<space>4<ret>"
+map global user 5 ":to-buffer<space>5<ret>"
+map global user 6 ":to-buffer<space>6<ret>"
+map global user 7 ":to-buffer<space>7<ret>"
+map global user 8 ":to-buffer<space>8<ret>"
+map global user 9 ":to-buffer<space>9<ret>"
+map global user 0 ":to-buffer<space>0<ret>"
 
 hook global InsertChar \t %{
     %sh{
@@ -28,6 +39,22 @@ hook global InsertChar \t %{
             true
         else
             echo "exec -draft h@"
+        fi
+    }
+}
+
+def -params 1..1 to-buffer %{
+    %sh{
+        buffname=$(echo ${kak_buflist} | cut -d':' -f $1 )
+        echo "exec :buffer<space>${buffname}<ret>"
+    }
+}
+
+def -hidden buffer-menu %{
+    %sh{
+        selected=$(~/bin/kakfiles.sh ${kak_buflist} ${kak_client_env_PWD})
+        if [ "${selected}" != "" ]; then
+            echo "exec :edit<space>${selected}<ret>"
         fi
     }
 }
@@ -105,7 +132,7 @@ def -params 1..1 indent-closing %~
 
 # Option
 # set global termcmd "xfce4-terminal -x sh -c"
-set global termcmd "xfce4-terminal -e "
+# set global termcmd "xfce4-terminal -e "
 set global tabstop     4
 set global indentwidth 4
 set global scrolloff 1,5
@@ -159,3 +186,21 @@ hook global BufWritePost .* %{
         fasd -A "${kak_buffile}"
     }
 }
+
+
+def -docstring %{xsplit [<command>]: create a new kak client for the current session
+The optional arguments will be passed as arguments to the new client} \
+    -params .. \
+    -command-completion \
+    xsplit %{ %sh{
+        if [ -z "${kak_opt_termcmd}" ]; then
+           echo "echo -color Error 'termcmd option is not set'"
+           exit
+        fi
+        if [ $# -ne 0 ]; then kakoune_params="-e '$@'"; fi
+        xmonadctl incMaster
+        setsid ${kak_opt_termcmd} "kak -c ${kak_session} ${kakoune_params}" < /dev/null > /dev/null 2>&1 &
+        sleep 0.5
+        echo "x11-focus"
+}}
+
