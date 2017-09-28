@@ -33,6 +33,9 @@ map global user 8 ":to-buffer<space>8<ret>"
 map global user 9 ":to-buffer<space>9<ret>"
 map global user 0 ":to-buffer<space>0<ret>"
 
+
+
+
 hook global InsertChar \t %{
     %sh{
         if [ "${kak_opt_filetype}" = "makefile" ]; then
@@ -162,8 +165,34 @@ hook global BufSetOption filetype=(yaml) %{
     set buffer indentwidth 2
 }
 
+hook global BufSetOption filetype=(python) %{
+    set buffer lintcmd     flake8
+    lint-enable
+}
 
-hook global BufSetOption (PKGBUILD|.*\.install) %{
+hook -group python-lint global WinSetOption filetype=python %{
+    lint-enable
+    lint
+}
+
+hook -group python-lint global WinSetOption filetype=(?!python).* %{
+    lint-disable
+}
+
+hook global WinSetOption filetype=(?!python).* %{
+    rmhooks window python-lint
+}
+
+hook -group python-lint global  BufWritePost .*\.py %{
+    lint
+}
+
+hook -group python-lint global NormalIdle .*\.py %{
+    lint
+}
+
+
+hook global BufOpenFile (PKGBUILD|.*\.install) %{
     set buffer filetype sh
 }
 
@@ -204,3 +233,13 @@ The optional arguments will be passed as arguments to the new client} \
         echo "x11-focus"
 }}
 
+echo -debug %val(client)
+
+%sh{
+    if [ -f "./.local.kak" ]; then
+        echo "source ./.local.kak"
+    else
+        echo "echo -debug no .local.kak found. To create:"
+        echo "echo -debug edit .local.kak"
+    fi
+}
