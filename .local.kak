@@ -1,5 +1,2 @@
-echo -debug loading....
-
-def -allow-override laoded %{
-    echo -debug loaded
-    }
+set -add global linked_projects /home/lisael/projects/perso/kakoune/
+set -add global linked_projects ~/bin
